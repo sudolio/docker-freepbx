@@ -43,8 +43,8 @@ EOF
 	echo 'SELECT 1 FROM sipsettings LIMIT 1' | mysql -u$DB_USER $PASS -h$DB_HOST -P$DB_PORT $DB_NAME >/dev/null 2>&1
 	if [ $? -eq 0 ]; then
 		mysql -u$DB_USER $PASS -h$DB_HOST -P$DB_PORT $DB_NAME <<- EOF
-			INSERT INTO sipsettings (keyword, data, seq, type) VALUES ("rtpstart", "$RTP_PORT_START",10,0) ON DUPLICATE KEY UPDATE data = "$RTP_PORT_START";
-			INSERT INTO sipsettings (keyword, data, seq, type) VALUES ("rtpend", "$RTP_PORT_END", 10, 0) ON DUPLICATE KEY UPDATE data = "$RTP_PORT_END";
+			INSERT INTO sipsettings (keyword, data, seq, type) VALUES ('rtpstart', '$RTP_PORT_START', 0, 0) ON DUPLICATE KEY UPDATE data = '$RTP_PORT_START';
+			INSERT INTO sipsettings (keyword, data, seq, type) VALUES ('rtpend', '$RTP_PORT_END', 0, 0) ON DUPLICATE KEY UPDATE data = '$RTP_PORT_END';
 		EOF
 	fi
 
@@ -62,20 +62,20 @@ install()
 	cd /usr/src/freepbx
 	./start_asterisk start
 
-	set +e
+	#set +e
 
 	# get asterix manager password from settings in case we have already populated database
-	AMPMGRPASS=$(echo 'SELECT value FROM freepbx_settings WHERE keyword = "AMPMGRPASS";' | mysql -u$DB_USER $PASS -h$DB_HOST -P$DB_PORT $DB_NAME -N 2>&1)
-	if [ $? -eq 0 ]; then
-		sed -i -e "s/\(\\\$amp_conf\['AMPMGRPASS'\] = \)md5(uniqid())/\1'$AMPMGRPASS'/" \
-		./installlib/installcommand.class.php
-		printf "Asterisk manager secret updated from DB.\n"
-	fi
+	#AMPMGRPASS=$(echo 'SELECT value FROM freepbx_settings WHERE keyword = "AMPMGRPASS";' | mysql -u$DB_USER $PASS -h$DB_HOST -P$DB_PORT $DB_NAME -N 2>&1)
+	#if [ $? -eq 0 ]; then
+	#	sed -i -e "s/\(\\\$amp_conf\['AMPMGRPASS'\] = \)md5(uniqid())/\1'$AMPMGRPASS'/" \
+	#	./installlib/installcommand.class.php
+	#	printf "Asterisk manager secret updated from DB.\n"
+	#fi
 
 	# get list of modules which we would need to install if database was already populated
-	MODULES=$(echo 'SELECT modulename FROM modules WHERE enabled = 1' | mysql -u$DB_USER $PASS -h$DB_HOST -P$DB_PORT $DB_NAME -N 2>/dev/null | tr '\n' ' ')
+	#MODULES=$(echo 'SELECT modulename FROM modules WHERE enabled = 1' | mysql -u$DB_USER $PASS -h$DB_HOST -P$DB_PORT $DB_NAME -N 2>/dev/null | tr '\n' ' ')
 
-	set -e
+	#set -e
 
 	# not sure why install script doesn't save cdr db name to the config file and all time fallback to asteriskcdrdb during module installation
 	sed -i \
@@ -92,13 +92,11 @@ install()
 
 	configure
 
-	if [ -n "$MODULES" ]; then
-		fwconsole ma install $MODULES
-	else
-		# we need to install cdr module in a special way
-		mysql -u$DB_USER $PASS -h$DB_HOST -P$DB_PORT $DB_NAME < ./installlib/SQL/cdr.sql
-		fwconsole ma install cdr
-	fi
+	# install common modules
+	INSTALL_MODULES="$FREEPBX_MODULES $EXTRA_MODULES"
+
+	mysql -u$DB_USER $PASS -h$DB_HOST -P$DB_PORT $DB_NAME < ./installlib/SQL/cdr.sql 2>/dev/null
+	fwconsole ma install $INSTALL_MODULES
 
 	./start_asterisk kill
 }
