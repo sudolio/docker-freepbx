@@ -5,14 +5,12 @@ services:
     image: sudolio/freepbx
     restart: always
     ports:
-    - 8080:80
-    - 5060:5060
-    - 5160:5160
-    - 8001:8001
-    - 8003:8003
-    - 8008:8008
-    - 8009:8009
-    - 10000-10050:10000-10050/udp
+    - "8080:80"
+    - "5060:5060"
+    - "5060:5060/udp"
+    - "5160:5160"
+    - "5160:5160/udp"
+    - "10000-10050:10000-10050/udp"
     volumes:
     - data:/data
     environment:
@@ -23,6 +21,7 @@ services:
     - DB_PASS=
     - RTP_PORT_START=10000
     - RTP_PORT_END=10050
+    - EXTRA_MODULES='ivr'
     depends_on:
     - db
   db:
