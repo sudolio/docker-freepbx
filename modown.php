@@ -73,7 +73,7 @@ foreach ($xml->children() as $module)
 				}
 
 				// sanitize name
-				$rawname = preg_replace('/[^a-zA-Z0-9]/', '', $rawname);
+				$rawname = preg_replace('/[^a-zA-Z0-9\-]/', '', $rawname);
 				break;
 
 			case 'name':
