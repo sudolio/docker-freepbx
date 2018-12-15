@@ -72,7 +72,7 @@ ENV FREEPBX_DOWNLOAD_MODULES="$FREEPBX_MODULES amd announcement arimanager aster
 COPY modown.php /usr/bin
 RUN chmod +x /usr/bin/modown.php && ln -s /usr/bin/modown.php /usr/bin/modown
 
-RUN set -x; \
+RUN set -ex; \
 	cd /usr/src; \
 	modown all $FREEPBX_VERSION ./ framework; \
 	mv framework freepbx; \
