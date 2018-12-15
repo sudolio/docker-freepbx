@@ -92,13 +92,14 @@ install()
 
 	configure
 
-	# install common modules
-	INSTALL_MODULES="$FREEPBX_MODULES $EXTRA_MODULES"
-
+	# install modules
 	mysql -u$DB_USER $PASS -h$DB_HOST -P$DB_PORT $DB_NAME < ./installlib/SQL/cdr.sql 2>/dev/null
-	fwconsole ma install $INSTALL_MODULES
 
-	./start_asterisk kill
+	fwconsole ma install $FREEPBX_MODULES
+	fwconsole ma install $EXTRA_MODULES
+
+
+	fwconsole stop
 }
 
 if [ ! -f "/etc/freepbx.conf" ]; then
