@@ -8,10 +8,13 @@ services:
     - "8080:80"
     - "5060:5060"
     - "5060:5060/udp"
+    - "5061:5061"
     - "5160:5160"
     - "5160:5160/udp"
+    - "5161:5161"
     - "10000-10050:10000-10050/udp"
     volumes:
+#    - asterisk:/etc/asterisk
     - data:/data
     environment:
     - DB_HOST=db
@@ -21,7 +24,7 @@ services:
     - DB_PASS=
     - RTP_PORT_START=10000
     - RTP_PORT_END=10050
-    - EXTRA_MODULES='ivr'
+    - EXTRA_MODULES='ivr certman'
     depends_on:
     - db
   db:
@@ -41,5 +44,6 @@ services:
     - PMA_USER=root
     - PMA_PASSWORD=
 volumes:
+  asterisk:
   data:
   db:
