@@ -8,7 +8,7 @@ RUN useradd -mU asterisk
 ENV BUILD_DEPS='build-essential linux-headers-amd64 libncurses5-dev libssl-dev libmariadbclient-dev \
 	libxml2-dev libnewt-dev libsqlite3-dev libasound2-dev pkg-config automake libtool autoconf unixodbc-dev \
 	uuid-dev libogg-dev libvorbis-dev libicu-dev libcurl4-openssl-dev libical-dev libneon27-dev libsrtp0-dev \
-	libspandsp-dev python-dev libtool-bin libresample1-dev'
+	libspandsp-dev python-dev libtool-bin libresample1-dev libedit-dev'
 
 # install dependencies
 RUN apt-get install --no-install-recommends -y apache2 mysql-client bison flex curl sox mpg123 ffmpeg sqlite3 \
@@ -31,17 +31,19 @@ RUN curl -s https://downloads.mariadb.com/Connectors/odbc/connector-odbc-2.0.18/
 	chown root:root /usr/lib/x86_64-linux-gnu/odbc/libmaodbc.so
 
 # install asterisk
-ENV ASTERIX_VERSION=15.6.2
+ENV ASTERISK_VERSION=15.7.0
 RUN set -ex; \
 	cd /usr/src; \
-	curl -sL http://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERIX_VERSION}.tar.gz | tar xfz -; \
-	cd /usr/src/asterisk-${ASTERIX_VERSION}; \
-	./configure --with-pjproject-bundled --with-jansson-bundled --with-ssl --with-srtp --with-resample; \
+	curl -sL http://downloads.asterisk.org/pub/telephony/asterisk/releases/asterisk-${ASTERISK_VERSION}.tar.gz | tar xfz -; \
+	cd /usr/src/asterisk-${ASTERISK_VERSION}; \
+	make distclean; \
+	./configure --with-pjproject-bundled --with-jansson-bundled --with-ssl=ssl --with-srtp --with-resample; \
 	contrib/scripts/get_mp3_source.sh; \
 	make menuselect/menuselect menuselect-tree menuselect.makeopts; \
 	menuselect/menuselect --disable BUILD_NATIVE --enable format_mp3 --enable app_fax; \
 	make install; \
 	ldconfig
+
 
 RUN set -ex; \
 	a2enmod rewrite; \
@@ -57,45 +59,40 @@ RUN set -ex; \
 # download freepbx and add modules, you can specify module version after the slash or left it blank to use global version
 ENV FREEPBX_VERSION=14.0 \
 	FREEPBX_MODULES='callrecording conferences customappsreg featurecodeadmin logfiles recordings voicemail cdr \
-	core dashboard infoservices music sipsettings soundlang' \
-	FREEPBX_DOWNLOAD_MODULES="$FREEPBX_MODULES amd announcement arimanager asterisk-cli asteriskinfo backup blacklist \
+	core dashboard infoservices music sipsettings soundlang'
+
+# download freepbx modules
+ENV FREEPBX_DOWNLOAD_MODULES="$FREEPBX_MODULES amd announcement arimanager asterisk-cli asteriskinfo backup blacklist \
 	bulkhandler calendar callback	callforward callwaiting cel certman cidlookup configedit contactmanager manager \
 	daynight dictate directory disa donotdisturb fax findmefollow hotelwakeup iaxsettings ivr languages miscapps \
 	miscdests outroutemsg paging parking pbdirectory phonebook pinsets pm2 presencestate printextensions queueprio \
 	queues restapi ringgroups setcid speeddial superfecta timeconditions tts ttsengines ucp userman vmblast \
 	weakpasswords webrtc"
 
-# download freepbx modules
-COPY modown.php /usr/src/modown/
-RUN set -ex; \
-	cd /usr/src/modown; \
-	php modown.php $FREEPBX_VERSION "framework $FREEPBX_DOWNLOAD_MODULES"; \
-	mkdir /usr/src/freepbx; \
-	tar xfz ./framework.tgz -C /usr/src/freepbx --strip-components=1
+COPY modown.php /usr/bin
+RUN chmod +x /usr/bin/modown.php && ln -s /usr/bin/modown.php /usr/bin/modown
 
 RUN set -x; \
+	cd /usr/src; \
+	modown all $FREEPBX_VERSION ./ framework; \
+	mv framework freepbx; \
 	mkdir -p /var/www/html/admin/modules; \
-	for i in $FREEPBX_DOWNLOAD_MODULES; do \
-		tar xfz /usr/src/modown/$i.tgz -C /var/www/html/admin/modules; \
-	done
+	modown all $FREEPBX_VERSION /var/www/html/admin/modules $FREEPBX_DOWNLOAD_MODULES
 
 
-# add common sound packages for module soundlang so we will not need to install it during runtime
-ENV FREEPBX_SOUND_PACKAGES='core-sounds/ulaw core-sounds/g722 extra-sounds/ulaw extra-sounds/g722'
+# add common sound packages for module soundlang so we will not need to download it during runtime
+ENV FREEPBX_SOUND_PACKAGES='asterisk/core-sounds/en/ulaw asterisk/core-sounds/en/g722 asterisk/extra-sounds/en/ulaw asterisk/extra-sounds/en/g722'
 RUN set -ex; \
-	cd /var/lib/asterisk/sounds/en; \
-	for i in $FREEPBX_SOUND_PACKAGES; do \
-		curl -sL http://downloads.asterisk.org/pub/telephony/sounds/asterisk-${i%/*}-en-${i#*/}-current.tar.gz | tar xfz -; \
-	done; \
-	chown -R asterisk. /var/lib/asterisk
+	modown sounds $FREEPBX_VERSION /var/lib/asterisk/sounds $FREEPBX_SOUND_PACKAGES; \
+	chown -R asterisk:asterisk /var/lib/asterisk
 
-# install dependencies for ucp and pm2 module
-#RUN set -ex; \
-#	cd /usr/src/freepbx/amp_conf/htdocs/admin/modules/ucp/node; \
-#	npm install; \
-#	cd /usr/src/freepbx/amp_conf/htdocs/admin/modules/pm2/node; \
-#	npm install
-
+# install dependencies for ucp and pm2
+RUN set -ex; \
+	cd /var/www/html/admin/modules/ucp/node; \
+	npm install; \
+	cd /var/www/html/admin/modules/pm2/node; \
+	npm install; \
+	chown -R asterisk:asterisk /var/www/html/admin/modules
 
 # cleanup dev dependencies
 #RUN set -ex; \
@@ -103,10 +100,6 @@ RUN set -ex; \
 #	apt-get autoremove -y; \
 #	rm -rf /var/lib/apt/lists/*; \
 #	rm -r /usr/src/asterisk-${ASTERIX_VERSION}
-
-# create directories
-RUN set -ex; \
-	mkdir -p /certs
 
 # ODBC configuration
 RUN echo '[MariaDB]\n \
@@ -129,7 +122,7 @@ COPY ./entrypoint.sh /
 RUN chmod +x /entrypoint.sh && ln -s /entrypoint.sh /bin/run
 ENTRYPOINT ["/entrypoint.sh"]
 
-EXPOSE 80 443 5060 5160 10000-20000/udp
+EXPOSE 80 443 5060 5061 5160 5161 10000-20000/udp
 
 # default variables
 ENV DB_HOST=db \
