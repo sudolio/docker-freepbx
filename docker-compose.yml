@@ -26,6 +26,7 @@ services:
     - RTP_PORT_START=10000
     - RTP_PORT_END=10050
     - EXTRA_MODULES=ivr certman
+    - SUPERVISOR_PASSWORD=admin
     depends_on:
     - db
   db:
