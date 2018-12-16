@@ -100,12 +100,17 @@ install()
 	mysql -u$DB_USER $PASS -h$DB_HOST -P$DB_PORT $DB_NAME < ./installlib/SQL/cdr.sql 2>/dev/null
 	set -e
 
-	if [ -n "$MODULES"]; then
+	if [ -n "$MODULES" ]; then
 		fwconsole ma install $MODULES
 	else
 		fwconsole ma install $FREEPBX_MODULES
-		fwconsole ma install $EXTRA_MODULES
+
+		if [ -n "$EXTRA_MODULES" ]; then
+			fwconsole ma install $EXTRA_MODULES
+		fi
 	fi
+
+	configure
 
 	fwconsole reload
 	fwconsole stop
