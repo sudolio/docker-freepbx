@@ -45,6 +45,9 @@ EOF
 		mysql -u$DB_USER $PASS -h$DB_HOST -P$DB_PORT $DB_NAME <<- EOF
 			INSERT INTO sipsettings (keyword, data, seq, type) VALUES ('rtpstart', '$RTP_PORT_START', 0, 0) ON DUPLICATE KEY UPDATE data = '$RTP_PORT_START';
 			INSERT INTO sipsettings (keyword, data, seq, type) VALUES ('rtpend', '$RTP_PORT_END', 0, 0) ON DUPLICATE KEY UPDATE data = '$RTP_PORT_END';
+
+			INSERT INTO kvstore_Sipsettings (\`key\`, \`val\`, \`type\`, \`id\`) VALUES ('rtpstart', '$RTP_PORT_START', NULL, 'noid') ON DUPLICATE KEY UPDATE val = '$RTP_PORT_START';
+			INSERT INTO kvstore_Sipsettings (\`key\`, \`val\`, \`type\`, \`id\`) VALUES ('rtpend', '$RTP_PORT_END', NULL, 'noid') ON DUPLICATE KEY UPDATE val = '$RTP_PORT_END';
 		EOF
 	fi
 
