@@ -98,7 +98,6 @@ install()
 	fwconsole ma install $FREEPBX_MODULES
 	fwconsole ma install $EXTRA_MODULES
 
-
 	fwconsole stop
 }
 
@@ -108,7 +107,12 @@ fi
 
 case "$1" in
 	start)
-		exec supervisord -c /etc/supervisor/conf.d/supervisord.conf
+		sed -i \
+		-e "s/%USERNAME%/$SUPERVISOR_USERNAME/" \
+		-e "s/%PASSWORD%/$SUPERVISOR_PASSWORD/" \
+		/etc/supervisor/supervisord.conf
+
+		exec supervisord -c /etc/supervisor/supervisord.conf
 		;;
 
 	configure)
