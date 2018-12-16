@@ -19,7 +19,7 @@ RUN apt-get install --no-install-recommends -y apache2 mysql-client bison flex c
 RUN set -ex; \
 	curl -so /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.xyz/php/apt.gpg; \
 	echo "deb https://packages.sury.xyz/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list; \
-	apt-get update -y; \
+	apt-get update -y && apt-get upgrade -y; \
 	apt-get install -y php5.6 php5.6-curl php5.6-cli php5.6-mysql php5.6-gd php5.6-xml php5.6-mbstring php-pear
 
 # nodejs
@@ -47,11 +47,11 @@ RUN set -ex; \
 
 RUN set -ex; \
 	a2enmod rewrite; \
-	chown asterisk. /var/run/asterisk; \
-	chown -R asterisk. /etc/asterisk; \
-	chown -R asterisk. /var/lib/asterisk; \
-	chown -R asterisk. /var/log/asterisk; \
-	chown -R asterisk. /var/spool/asterisk; \
+	chown asterisk:asterisk /var/run/asterisk; \
+	chown -R asterisk:asterisk /etc/asterisk; \
+	chown -R asterisk:asterisk /var/lib/asterisk; \
+	chown -R asterisk:asterisk /var/log/asterisk; \
+	chown -R asterisk:asterisk /var/spool/asterisk; \
 	rm -rf /var/www/html; \
 	sed -i -e 's/\(^upload_max_filesize = \).*/\120M/' -e 's/\(memory_limit = \)128M/\1256M/' /etc/php/5.6/apache2/php.ini; \
 	sed -i -e 's/^\(User\|Group\).*/\1 asterisk/' -e 's/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
