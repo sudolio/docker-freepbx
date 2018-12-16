@@ -109,20 +109,22 @@ Setup = /usr/lib/x86_64-linux-gnu/odbc/libodbcmyS.so\n \
 FileUsage = 1\n' > /etc/odbcinst.ini
 
 # import GPG keys - use local files as sometimes we have building issues to download them from pgp servers
-#COPY ./pgp /pgp
-#RUN sudo -u asterisk gpg --no-tty --import /pgp/freepbx_security.txt; \
-#	sudo -u asterisk gpg --no-tty --import /pgp/freepbx_module_signing.txt
 RUN sudo -u asterisk gpg --no-tty --import /usr/src/freepbx/amp_conf/htdocs/admin/libraries/BMO/*.key
 
 # supervisord
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+ENV SUPERVISOR_USERNAME=admin \
+	SUPERVISOR_PASSWORD=
+COPY supervisor /etc/supervisor
 
-# add entrypoint
+# add tini and entrypoint
+ENV TINI_VERSION v0.18.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /sbin/tini
 COPY ./entrypoint.sh /
-RUN chmod +x /entrypoint.sh && ln -s /entrypoint.sh /bin/run
-ENTRYPOINT ["/entrypoint.sh"]
+RUN chmod +x /entrypoint.sh && ln -s /entrypoint.sh /bin/run; \
+	chmod +x /sbin/tini
+ENTRYPOINT ["/sbin/tini", "--", "/entrypoint.sh"]
 
-EXPOSE 80 443 5060 5061 5160 5161 10000-20000/udp
+EXPOSE 80 443 5060 5061 5160 5161 9001 10000-20000/udp
 
 # default variables
 ENV DB_HOST=db \
