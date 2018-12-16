@@ -12,6 +12,7 @@ services:
     - "5160:5160"
     - "5160:5160/udp"
     - "5161:5161"
+    - "9001:9001"
     - "10000-10050:10000-10050/udp"
     volumes:
 #    - asterisk:/etc/asterisk
@@ -24,7 +25,7 @@ services:
     - DB_PASS=
     - RTP_PORT_START=10000
     - RTP_PORT_END=10050
-    - EXTRA_MODULES='ivr certman'
+    - EXTRA_MODULES=ivr certman
     depends_on:
     - db
   db:
