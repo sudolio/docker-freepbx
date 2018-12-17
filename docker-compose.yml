@@ -15,8 +15,9 @@ services:
     - "9001:9001"
     - "10000-10050:10000-10050/udp"
     volumes:
-#    - asterisk:/etc/asterisk
-    - data:/data
+    - config:/etc/asterisk
+    - log:/var/log
+    - data:/var/spool/asterisk
     environment:
     - DB_HOST=db
     - DB_PORT=3306
@@ -46,6 +47,7 @@ services:
     - PMA_USER=root
     - PMA_PASSWORD=
 volumes:
-  asterisk:
+  config:
+  log:
   data:
   db:
