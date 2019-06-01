@@ -28,9 +28,9 @@ Port = $DB_PORT
 Option = 3
 EOF
 
-	# configure tables in database
 	set +e
 
+	# configure tables in database
 	echo 'SELECT 1 FROM freepbx_settings LIMIT 1' | mysql -u$DB_USER $PASS -h$DB_HOST -P$DB_PORT $DB_NAME >/dev/null 2>&1
 	if [ $? -eq 0 ]; then
 		mysql -u$DB_USER $PASS -h$DB_HOST -P$DB_PORT $DB_NAME <<- EOF
@@ -50,6 +50,23 @@ EOF
 			INSERT INTO kvstore_Sipsettings (\`key\`, \`val\`, \`type\`, \`id\`) VALUES ('rtpend', '$RTP_PORT_END', NULL, 'noid') ON DUPLICATE KEY UPDATE val = '$RTP_PORT_END';
 		EOF
 	fi
+
+	# update freepbx settings from variables
+	SETTINGS=$(env | grep -o 'FREEPBX_SETTING_.[^=]*')
+
+	for i in $SETTINGS; do
+		NAME=$(echo $i | sed -e 's/FREEPBX_SETTING_//')
+		eval 'VALUE="$'$i'"'
+		echo "UPDATE freepbx_settings SET value = '$VALUE' WHERE keyword = '$NAME'" | mysql -u$DB_USER $PASS -h$DB_HOST -P$DB_PORT $DB_NAME
+	done
+
+	# update KVSTORE settings from variables
+	SETTINGS=$(env | grep -o 'FREEPBX_KVSTORE_.[^=]*')
+	for i in $SETTINGS; do
+		NAME=$(echo $i | sed -e 's/FREEPBX_SETTING_//')
+		eval 'VALUE="$'$i'"'
+		echo "UPDATE freepbx_settings SET value = '$VALUE' WHERE keyword = '$NAME'" | mysql -u$DB_USER $PASS -h$DB_HOST -P$DB_PORT $DB_NAME
+	done
 
 	set -e
 }
@@ -120,6 +137,14 @@ if [ ! -f "/etc/freepbx.conf" ]; then
 	install
 fi
 
+# reconfigure every time when it's forced
+if [ -n "$FORCE_CONFIGURE" ]; then
+	fwconsole start
+	configure
+	fwconsole reload
+	fwconsole stop
+fi
+
 case "$1" in
 	start)
 		sed -i \
@@ -132,6 +157,7 @@ case "$1" in
 
 	configure)
 		configure
+		fwconsole reload
 		;;
 
 	install)

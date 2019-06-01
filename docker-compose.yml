@@ -28,6 +28,9 @@ services:
     - RTP_PORT_END=10050
     - EXTRA_MODULES=ivr certman
     - SUPERVISOR_PASSWORD=admin
+    - FORCE_CONFIGURE=1
+    - FREEPBX_SETTING_PHP_CONSOLE=1
+    - FREEPBX_KVSTORE_Sipsettings_rtpstart=12000
     depends_on:
     - db
   db:
